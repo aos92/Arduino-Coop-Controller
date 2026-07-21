@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino Coop Controller &mdash; CC2540 / HM-10 BLE Edition</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#22331e;
+    --barn:#7a3324;
+    --leaf:#5c8a4a;
+    --straw:#e0a83f;
+    --sand:#f6f2e6;
+    --ink:#2a2f22;
+    --line:#e2dcc9;
+  }
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--sand);
+  }
+  h1,h2,h3,h4,.brand,.navpill{font-family:'Sora',sans-serif;}
+  code, .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    background:linear-gradient(100deg,var(--deep) 0%,#31401f 55%,#4a5a26 100%);
+    color:#eef3e6;
+    border-bottom:3px solid var(--straw);
+  }
+  .topbar .brand{font-weight:800;font-size:1.15rem;letter-spacing:.2px;}
+  .topbar .subtitle{font-size:.78rem;color:#c9d9b6;letter-spacing:.5px;text-transform:uppercase;}
+  .badge-version{
+    background:rgba(224,168,63,.16);
+    border:1px solid var(--straw);
+    color:#ffe6ae;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.72rem;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:
+      radial-gradient(65% 100% at 88% 0%, rgba(224,168,63,.28), transparent 60%),
+      linear-gradient(180deg,var(--deep), #2e3f1e 100%);
+    color:#eef3e6;
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .hero .coophatch{
+    position:absolute; inset:0; opacity:.10; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(115deg, transparent 0 26px, rgba(255,255,255,.5) 27px, transparent 28px);
+  }
+  .hero .eyebrow{
+    color:var(--straw); font-weight:600; letter-spacing:1.5px; font-size:.75rem; text-transform:uppercase;
+  }
+  .hero h1{font-weight:800; font-size:2.4rem;}
+  .hero p.lead{color:#dbe6cd; font-size:1.02rem; max-width:640px;}
+  .stat-chip{
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;
+    padding:.65rem .9rem;
+  }
+  .stat-chip .num{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.35rem; color:#ffe6ae;}
+  .stat-chip .lbl{font-size:.72rem; color:#c9d9b6; text-transform:uppercase; letter-spacing:.5px;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    position:sticky; top:76px;
+    max-height:calc(100vh - 96px);
+    overflow-y:auto;
+    padding-right:.5rem;
+  }
+  .sidebar::-webkit-scrollbar{width:6px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#d8d0b8;border-radius:6px;}
+  .toc-title{font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:#7a7256; font-weight:700; margin:1.1rem 0 .4rem;}
+  .toc-title:first-child{margin-top:0;}
+  .nav-pills .nav-link{
+    color:var(--ink); font-size:.88rem; padding:.3rem .6rem; border-radius:7px;
+    border-left:2px solid transparent;
+  }
+  .nav-pills .nav-link.method-item{color:#5c5940; font-size:.82rem;}
+  .nav-pills .nav-link:hover{background:#eef0e2;}
+  .nav-pills .nav-link.active{
+    background:rgba(92,138,74,.14); color:var(--deep); font-weight:600; border-left:2px solid var(--leaf);
+  }
+
+  /* ---------- Section styling ---------- */
+  section.doc-section{scroll-margin-top:80px; margin-bottom:3rem;}
+  .section-head{
+    display:flex; align-items:center; gap:.6rem; margin-bottom:1rem;
+    padding-bottom:.6rem; border-bottom:2px solid var(--line);
+  }
+  .section-head .icon-badge{
+    width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    background:var(--deep); color:#dbe6cd; font-size:.95rem; flex-shrink:0;
+  }
+  .section-head.wi .icon-badge{background:var(--straw); color:#3a2600;}
+  .section-head.bl .icon-badge{background:var(--leaf); color:#0f1f08;}
+  .section-head.bn .icon-badge{background:var(--barn); color:#fbe3dc;}
+  .section-head h2{margin:0; font-size:1.4rem; font-weight:700; color:var(--deep);}
+  .section-head .count{font-size:.78rem; color:#7c7a5f; font-weight:500;}
+
+  .card-member{
+    background:#fff; border:1px solid var(--line); border-radius:12px;
+    padding:1.1rem 1.25rem; margin-bottom:.9rem; scroll-margin-top:80px;
+    transition:box-shadow .15s ease, border-color .15s ease;
+  }
+  .card-member:hover{box-shadow:0 4px 18px rgba(34,51,30,.09); border-color:#cfe0bc;}
+  .card-member .sig{
+    font-family:'JetBrains Mono',monospace; font-size:.92rem; color:var(--deep); font-weight:600;
+    word-break:break-word;
+  }
+  .card-member .sig .fn{color:var(--leaf); font-weight:700;}
+  .card-member .sig .paren{color:#a2a186;}
+  .card-member p.desc{margin:.55rem 0 0; font-size:.9rem; color:#40402c; line-height:1.55;}
+  .pill-type{
+    font-family:'JetBrains Mono',monospace; font-size:.68rem; padding:.15rem .5rem; border-radius:20px;
+    border:1px solid; margin-left:.15rem; white-space:nowrap;
+  }
+  .pill-pin{color:#5c8a4a; border-color:#cfe0bc; background:#f1f7ea;}
+  .pill-cmd{color:#a15a1f; border-color:#f0d3ac; background:#fff6e8;}
+  .badge-return{
+    font-size:.68rem; font-weight:600; padding:.2rem .55rem; border-radius:6px;
+    background:var(--deep); color:#e5efd8; margin-left:.4rem;
+  }
+  .param-table{font-size:.85rem; margin-top:.65rem;}
+  .param-table th{font-size:.7rem; text-transform:uppercase; letter-spacing:.4px; color:#7c7a5f; font-weight:600; border-bottom:1px solid var(--line);}
+  .param-table td{border-bottom:1px dashed #ece5d1; padding-top:.5rem; padding-bottom:.5rem; vertical-align:middle;}
+
+  .intro-card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.5rem;
+  }
+  .intro-card ol{margin-bottom:0;}
+  .intro-card li{margin-bottom:.55rem; font-size:.93rem; line-height:1.6;}
+
+  .feature-card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.25rem;
+    height:100%;
+  }
+  .feature-card .ficon{
+    width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:#eef4e5; color:var(--leaf); font-size:1.05rem; margin-bottom:.7rem;
+  }
+  .feature-card h5{font-size:1rem; font-weight:700; color:var(--deep);}
+  .feature-card p{font-size:.87rem; color:#40402c; margin-bottom:0; line-height:1.55;}
+
+  .schema-frame{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:1rem;
+  }
+  .schema-frame img{width:100%; border-radius:8px; border:1px solid var(--line);}
+  .schema-frame .cap{font-size:.8rem; color:#7c7a5f; margin-top:.6rem; text-align:center;}
+
+  /* ---------- Sun schedule signature element ---------- */
+  .sun-track{
+    position:relative;
+    height:120px;
+    border-radius:14px;
+    background:linear-gradient(90deg,#2b3a5c 0%,#4a6b8a 12%,#e8a15c 24%,#f6d98a 40%,#bfe0f0 55%,#f6d98a 70%,#e8834a 85%,#2b3a5c 100%);
+    overflow:visible;
+    margin-top:2.2rem;
+    margin-bottom:2.6rem;
+  }
+  .sun-track .horizon-line{
+    position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(255,255,255,.35);
+  }
+  .sun-marker{
+    position:absolute; top:50%; transform:translate(-50%,-50%);
+    width:34px; height:34px; border-radius:50%; background:#fff; border:2px solid var(--deep);
+    display:flex; align-items:center; justify-content:center; font-size:.85rem; color:var(--deep);
+    box-shadow:0 3px 8px rgba(0,0,0,.25);
+  }
+  .sun-marker .lbl{
+    position:absolute; top:42px; left:50%; transform:translateX(-50%);
+    font-size:.68rem; font-weight:600; color:var(--deep); background:#fff; padding:.15rem .45rem;
+    border-radius:6px; border:1px solid var(--line); white-space:nowrap;
+  }
+  .sun-marker.above .lbl{ top:auto; bottom:42px; }
+
+  footer{
+    background:var(--deep); color:#c3d3ae; font-size:.85rem;
+  }
+  .btn-straw{background:var(--straw); border-color:var(--straw); color:#3a2600; font-weight:600;}
+  .btn-straw:hover{background:#c9902f; border-color:#c9902f; color:#241800;}
+  .back-index{color:#c9d9b6; font-size:.85rem; text-decoration:none;}
+  .back-index:hover{color:#fff;}
+
+  #backToTop{
+    position:fixed; bottom:24px; right:24px; z-index:999; display:none;
+    width:44px; height:44px; border-radius:50%; background:var(--leaf); color:#fff; border:none;
+    box-shadow:0 6px 16px rgba(34,51,30,.35);
+  }
+
+  @media (max-width:991px){
+    .sun-marker .lbl{font-size:.6rem;}
+  }
+</style>
+</head>
+<body data-bs-spy="scroll" data-bs-target="#tocNav" data-bs-offset="100" tabindex="0">
+
+<!-- Topbar -->
+<nav class="navbar topbar sticky-top py-2">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fa-solid fa-kiwi-bird fa-lg" style="color:#ffe6ae;"></i>
+      <div>
+        <div class="brand">Arduino Coop Controller</div>
+        <div class="subtitle">CC2540 / HM-10 BLE Edition &middot; Arduino Mega</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge badge-version rounded-pill px-3 py-2"><i class="fa-solid fa-bluetooth-b me-1"></i> COOP_BLE</span>
+      <a href="https://github.com/aos92/-Arduino-Coop-Controller" class="back-index d-none d-md-inline" target="_blank" rel="noopener"><i class="fa-brands fa-github me-1"></i>Lihat di GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero py-5">
+  <div class="coophatch"></div>
+  <div class="container position-relative">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <div class="eyebrow mb-2">Dokumentasi Proyek &middot; Smart Coop Automation</div>
+        <h1>Arduino Coop Controller</h1>
+        <p class="lead mt-2">
+          Sistem otomasi kandang (<em>coop</em>) berbasis Arduino Mega dengan modul Bluetooth Low
+          Energy HM-10 / CC2540. Mengatur pintu, lampu, pakan, air minum, dan sirkulasi udara
+          secara otomatis mengikuti jadwal matahari (terbit &amp; terbenam), serta dapat
+          dikendalikan langsung dari smartphone melalui perintah BLE.
+        </p>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <a href="#overview" class="btn btn-straw btn-sm px-3"><i class="fa-solid fa-book-open me-1"></i> Mulai Baca</a>
+          <a href="#wiring" class="btn btn-outline-light btn-sm px-3">Lihat Skema Wiring</a>
+          <a href="#ble" class="btn btn-outline-light btn-sm px-3">Perintah BLE</a>
+        </div>
+      </div>
+      <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="row g-2">
+          <div class="col-4"><div class="stat-chip text-center"><div class="num">6</div><div class="lbl">Fitur Utama</div></div></div>
+          <div class="col-4"><div class="stat-chip text-center"><div class="num">18</div><div class="lbl">Pin Terpakai</div></div></div>
+          <div class="col-4"><div class="stat-chip text-center"><div class="num">11</div><div class="lbl">Perintah BLE</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container-fluid px-4 mt-4">
+  <div class="row">
+
+    <!-- Sidebar TOC -->
+    <div class="col-lg-3 d-none d-lg-block">
+      <div class="sidebar">
+        <div class="nav flex-column nav-pills" id="tocNav">
+          <div class="toc-title">Pengantar</div>
+          <a class="nav-link" href="#overview">Ringkasan</a>
+          <a class="nav-link" href="#schedule">Jadwal Otomatis</a>
+
+          <div class="toc-title">Fitur</div>
+          <a class="nav-link" href="#features">Fitur Utama</a>
+
+          <div class="toc-title">Perangkat Keras</div>
+          <a class="nav-link" href="#wiring">Konfigurasi Wiring</a>
+          <a class="nav-link" href="#skema">Skema Elektronik</a>
+          <a class="nav-link" href="#konstruksi">Diagram Konstruksi</a>
+
+          <div class="toc-title">Perintah BLE</div>
+          <a class="nav-link method-item" href="#cmd-water">?water</a>
+          <a class="nav-link method-item" href="#cmd-light">?light</a>
+          <a class="nav-link method-item" href="#cmd-feed">?feed</a>
+          <a class="nav-link method-item" href="#cmd-door">?door</a>
+          <a class="nav-link method-item" href="#cmd-fan">?fan</a>
+          <a class="nav-link method-item" href="#cmd-status">?status</a>
+          <a class="nav-link method-item" href="#cmd-bleinfo">?bleinfo</a>
+          <a class="nav-link method-item" href="#cmd-gpio">?digitalread / analogread / write</a>
+
+          <div class="toc-title">Memulai</div>
+          <a class="nav-link" href="#libs">Pustaka yang Dibutuhkan</a>
+          <a class="nav-link" href="#start">Mulai Cepat</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="col-lg-9">
+
+      <!-- Overview -->
+      <section id="overview" class="doc-section">
+        <div class="section-head">
+          <div class="icon-badge"><i class="fa-solid fa-circle-info"></i></div>
+          <div>
+            <h2>Ringkasan</h2>
+            <div class="count">Apa yang dilakukan sistem ini</div>
+          </div>
+        </div>
+        <div class="intro-card">
+          <ol>
+            <li><strong>Otomasi penuh berbasis matahari.</strong> Waktu buka/tutup pintu, nyala/mati lampu, pemberian pakan, dan air minum dihitung otomatis dari koordinat lokasi kandang menggunakan pustaka <code>TimeLord</code>, bukan jam tetap.</li>
+            <li><strong>Kendali jarak dekat via BLE.</strong> Modul HM-10 / CC2540 memungkinkan ponsel terhubung langsung ke Arduino Mega dan mengirim perintah teks sederhana yang diawali tanda <code>?</code>.</li>
+            <li><strong>Sensor &amp; pengaman fisik.</strong> Sakelar batas (limit switch) menjaga motor pintu tidak bergerak melampaui posisi buka/tutup, sementara pelampung (float switch) mencegah tandon air meluap.</li>
+            <li><strong>Kendali manual tetap tersedia.</strong> Tombol fisik untuk lampu, pakan, dan air tetap berfungsi berdampingan dengan jadwal otomatis dan perintah BLE.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Sun Schedule signature element -->
+      <section id="schedule" class="doc-section">
+        <div class="section-head">
+          <div class="icon-badge"><i class="fa-solid fa-sun"></i></div>
+          <div>
+            <h2>Jadwal Otomatis Berbasis Matahari</h2>
+            <div class="count">Semua waktu dihitung relatif terhadap matahari terbit &amp; terbenam</div>
+          </div>
+        </div>
+        <div class="sun-track" id="sunTrack">
+          <div class="horizon-line"></div>
+          <div class="sun-marker" style="left:6%;"><i class="fa-solid fa-door-open"></i><span class="lbl">Pintu Buka<br>(saat fajar)</span></div>
+          <div class="sun-marker above" style="left:18%;"><i class="fa-solid fa-droplet"></i><span class="lbl">Air Menyala<br>(+15 mnt)</span></div>
+          <div class="sun-marker" style="left:30%;"><i class="fa-solid fa-wheat-awn"></i><span class="lbl">Pakan Pagi<br>(+30 mnt)</span></div>
+          <div class="sun-marker above" style="left:50%;"><i class="fa-solid fa-clock"></i><span class="lbl">Pakan Siang<br>(12:00)</span></div>
+          <div class="sun-marker" style="left:70%;"><i class="fa-solid fa-wheat-awn"></i><span class="lbl">Pakan Sore<br>(&minus;4 jam)</span></div>
+          <div class="sun-marker above" style="left:82%;"><i class="fa-solid fa-lightbulb"></i><span class="lbl">Lampu Nyala<br>(&minus;2 jam)</span></div>
+          <div class="sun-marker" style="left:94%;"><i class="fa-solid fa-door-closed"></i><span class="lbl">Pintu Tutup<br>(+30 mnt senja)</span></div>
+        </div>
+        <p class="text-center" style="font-size:.82rem;color:#7c7a5f;">Gradasi kiri&ndash;kanan merepresentasikan satu siklus harian: fajar &rarr; siang &rarr; senja &rarr; malam. Posisi penanda bersifat ilustratif, waktu aktual dihitung ulang tiap hari oleh <code>calculateAlarmTimes()</code>.</p>
+      </section>
+
+      <!-- Features -->
+      <section id="features" class="doc-section">
+        <div class="section-head">
+          <div class="icon-badge"><i class="fa-solid fa-list-check"></i></div>
+          <div>
+            <h2>Fitur Utama</h2>
+            <div class="count">6 fitur</div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-door-open"></i></div>
+              <h5>Pintu Kandang Otomatis</h5>
+              <p>Membuka &amp; menutup pintu mengikuti waktu terbit/terbenam matahari, dilengkapi limit switch atas-bawah dan tombol manual.</p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-lightbulb"></i></div>
+              <h5>Pencahayaan Cerdas</h5>
+              <p>Mengatur lama pencahayaan tambahan (<em>photoperiod control</em>) agar total jam terang harian tercapai untuk produktivitas optimal.</p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-wheat-awn"></i></div>
+              <h5>Pemberian Pakan Otomatis</h5>
+              <p>Menjadwalkan pemberian pakan pagi, siang, sore, dan malam &mdash; dapat pula dipicu manual dengan durasi terprogram.</p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-droplet"></i></div>
+              <h5>Air Minum Otomatis</h5>
+              <p>Katup solenoid mengisi air minum, dipadukan dengan pelampung (float switch) agar suplai tetap terjaga tanpa meluap.</p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-fan"></i></div>
+              <h5>Kendali Iklim / Kipas</h5>
+              <p>Sensor suhu DS18B20 memantau suhu kandang dan menyalakan kipas otomatis saat melewati ambang batas aman.</p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="feature-card">
+              <div class="ficon"><i class="fa-solid fa-bluetooth-b"></i></div>
+              <h5>Konektivitas BLE</h5>
+              <p>Modul HM-10 memungkinkan status sistem dipantau dan dikendalikan langsung dari aplikasi smartphone.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Wiring -->
+      <section id="wiring" class="doc-section">
+        <div class="section-head wi">
+          <div class="icon-badge"><i class="fa-solid fa-plug-circle-bolt"></i></div>
+          <div>
+            <h2>Konfigurasi Wiring</h2>
+            <div class="count">Pemetaan pin Arduino Mega</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table param-table">
+            <thead>
+              <tr><th>Komponen</th><th>Pin Arduino Mega</th><th>Keterangan</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>HM-10 TX</strong></td><td><span class="pill-type pill-pin">Pin 19 (RX1)</span></td><td>Hardware Serial Line 1</td></tr>
+              <tr><td><strong>HM-10 RX</strong></td><td><span class="pill-type pill-pin">Pin 18 (TX1)</span></td><td>Gunakan pembagi tegangan 3.3V</td></tr>
+              <tr><td><strong>HM-10 VCC</strong></td><td><span class="pill-type pill-pin">3.3V</span></td><td>Suplai daya modul BLE</td></tr>
+              <tr><td><strong>HM-10 GND</strong></td><td><span class="pill-type pill-pin">GND</span></td><td>Ground bersama</td></tr>
+              <tr><td><strong>Tombol Lampu</strong></td><td><span class="pill-type pill-pin">Pin 2</span></td><td>Kendali manual lampu</td></tr>
+              <tr><td><strong>Tombol Air</strong></td><td><span class="pill-type pill-pin">Pin 3</span></td><td>Kendali manual air</td></tr>
+              <tr><td><strong>Relay Pintu Tutup</strong></td><td><span class="pill-type pill-pin">Pin 4</span></td><td>Relay motor pintu (Close)</td></tr>
+              <tr><td><strong>Relay Pintu Buka</strong></td><td><span class="pill-type pill-pin">Pin 5</span></td><td>Relay motor pintu (Open)</td></tr>
+              <tr><td><strong>Sensor Suhu Udara</strong></td><td><span class="pill-type pill-pin">Pin 6</span></td><td>DS18B20 (OneWire)</td></tr>
+              <tr><td><strong>Relay Lampu</strong></td><td><span class="pill-type pill-pin">Pin 8</span></td><td>Relay pencahayaan kandang</td></tr>
+              <tr><td><strong>Relay Pakan</strong></td><td><span class="pill-type pill-pin">Pin 9</span></td><td>Relay motor pemberi pakan</td></tr>
+              <tr><td><strong>Relay Kipas</strong></td><td><span class="pill-type pill-pin">Pin 10</span></td><td>Relay kipas ventilasi</td></tr>
+              <tr><td><strong>Relay Solenoid Air</strong></td><td><span class="pill-type pill-pin">Pin 11</span></td><td>Relay katup solenoid air</td></tr>
+              <tr><td><strong>Sakelar Buka Pintu</strong></td><td><span class="pill-type pill-pin">A0</span></td><td>Limit switch batas buka</td></tr>
+              <tr><td><strong>Sakelar Tutup Pintu</strong></td><td><span class="pill-type pill-pin">A1</span></td><td>Limit switch batas tutup</td></tr>
+              <tr><td><strong>Tombol Pakan</strong></td><td><span class="pill-type pill-pin">A2</span></td><td>Kendali manual pakan</td></tr>
+              <tr><td><strong>Pelampung Air</strong></td><td><span class="pill-type pill-pin">A3</span></td><td>Float switch level air</td></tr>
+              <tr><td><strong>Stop Tutup Pintu</strong></td><td><span class="pill-type pill-pin">A6</span></td><td>Sensor analog batas tutup</td></tr>
+              <tr><td><strong>Stop Buka Pintu</strong></td><td><span class="pill-type pill-pin">A7</span></td><td>Sensor analog batas buka</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Skema -->
+      <section id="skema" class="doc-section">
+        <div class="section-head wi">
+          <div class="icon-badge"><i class="fa-solid fa-diagram-project"></i></div>
+          <div>
+            <h2>Skema Elektronik</h2>
+            <div class="count">Wiring lengkap Arduino Mega, relay, dan aktuator</div>
+          </div>
+        </div>
+        <div class="schema-frame">
+          <img src="skema.png" alt="Skema elektronik Arduino Coop Controller">
+          <div class="cap">Diagram koneksi PSU, relay 8 channel, sensor, dan aktuator ke Arduino Mega beserta modul CC2540.</div>
+        </div>
+      </section>
+
+      <!-- Konstruksi -->
+      <section id="konstruksi" class="doc-section">
+        <div class="section-head wi">
+          <div class="icon-badge"><i class="fa-solid fa-trowel"></i></div>
+          <div>
+            <h2>Diagram Konstruksi</h2>
+            <div class="count">Tata letak mekanis komponen kandang</div>
+          </div>
+        </div>
+        <div class="schema-frame">
+          <img src="kontruksi.png" alt="Diagram konstruksi mekanis Arduino Coop Controller">
+          <div class="cap">Penempatan tandon air, katup selenoid, tempat minum, tempat pakan, dan mekanisme motor pintu geser.</div>
+        </div>
+      </section>
+
+      <!-- BLE Commands -->
+      <section id="ble" class="doc-section">
+        <div class="section-head bl">
+          <div class="icon-badge"><i class="fa-solid fa-bolt"></i></div>
+          <div>
+            <h2>Perintah BLE</h2>
+            <div class="count">11 perintah &middot; diawali tanda <code>?</code></div>
+          </div>
+        </div>
+
+        <div class="card-member" id="cmd-water">
+          <div class="sig"><span class="fn">?water</span><span class="paren">=</span><span class="pill-type pill-cmd">1|0</span></div>
+          <p class="desc">Menyalakan atau mematikan sistem air minum secara manual. Balasan: <code>OK+water=on</code> / <code>OK+water=off</code>.</p>
+        </div>
+
+        <div class="card-member" id="cmd-light">
+          <div class="sig"><span class="fn">?light</span><span class="paren">=</span><span class="pill-type pill-cmd">1|0|toggle</span></div>
+          <p class="desc">Mengendalikan lampu kandang, termasuk mode toggle untuk membalik status saat ini.</p>
+        </div>
+
+        <div class="card-member" id="cmd-feed">
+          <div class="sig"><span class="fn">?feed</span></div>
+          <p class="desc">Memicu pemberian pakan secara manual selama durasi terprogram (20 detik).</p>
+        </div>
+
+        <div class="card-member" id="cmd-door">
+          <div class="sig"><span class="fn">?door</span><span class="paren">=</span><span class="pill-type pill-cmd">open|close</span></div>
+          <p class="desc">Membuka atau menutup pintu kandang, dibatasi otomatis oleh limit switch fisik.</p>
+        </div>
+
+        <div class="card-member" id="cmd-fan">
+          <div class="sig"><span class="fn">?fan</span><span class="paren">=</span><span class="pill-type pill-cmd">1|0|toggle</span></div>
+          <p class="desc">Mengendalikan kipas ventilasi secara manual, terlepas dari kendali otomatis berbasis suhu.</p>
+        </div>
+
+        <div class="card-member" id="cmd-status">
+          <div class="sig"><span class="fn">?status</span><span class="badge-return">returns JSON</span></div>
+          <p class="desc">Meminta status seluruh perangkat (lampu, kipas, pakan, air, posisi pintu, suhu, dan waktu) dalam format JSON.</p>
+        </div>
+
+        <div class="card-member" id="cmd-bleinfo">
+          <div class="sig"><span class="fn">?bleinfo</span></div>
+          <p class="desc">Menampilkan alamat MAC, nama, level baterai, dan RSSI modul BLE.</p>
+        </div>
+
+        <div class="card-member" id="cmd-gpio">
+          <div class="sig"><span class="fn">?digitalread</span><span class="paren">=</span><span class="pill-type pill-cmd">pin</span></div>
+          <p class="desc">Membaca status digital sebuah pin.</p>
+        </div>
+        <div class="card-member">
+          <div class="sig"><span class="fn">?analogread</span><span class="paren">=</span><span class="pill-type pill-cmd">pin</span></div>
+          <p class="desc">Membaca nilai analog sebuah pin.</p>
+        </div>
+        <div class="card-member">
+          <div class="sig"><span class="fn">?digitalwrite</span><span class="paren">=</span><span class="pill-type pill-cmd">pin;v</span></div>
+          <p class="desc">Menulis nilai digital (<code>v = 0/1</code>) ke pin tertentu.</p>
+        </div>
+        <div class="card-member">
+          <div class="sig"><span class="fn">?pinmode</span><span class="paren">=</span><span class="pill-type pill-cmd">pin;mode</span></div>
+          <p class="desc">Mengatur mode pin (<code>INPUT</code> / <code>OUTPUT</code>) secara langsung dari BLE.</p>
+        </div>
+      </section>
+
+      <!-- Libraries -->
+      <section id="libs" class="doc-section">
+        <div class="section-head bn">
+          <div class="icon-badge"><i class="fa-solid fa-book"></i></div>
+          <div>
+            <h2>Pustaka yang Dibutuhkan</h2>
+            <div class="count">Pasang melalui Arduino IDE Library Manager</div>
+          </div>
+        </div>
+        <div class="intro-card">
+          <ul class="mb-0">
+            <li><code>Wire.h</code> &mdash; bawaan Arduino IDE</li>
+            <li><code>OneWire.h</code> &mdash; komunikasi sensor suhu DS18B20</li>
+            <li><code>TimeLord</code> &mdash; perhitungan waktu matahari terbit/terbenam</li>
+            <li><code>Time</code> / <code>TimeLib</code></li>
+            <li><code>TimeAlarms</code> &mdash; penjadwalan alarm harian</li>
+            <li><code>DS1307RTC.h</code> &mdash; atau driver RTC yang sesuai</li>
+            <li><code>HM_10_BLE.h</code> &mdash; komunikasi modul BLE</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Getting Started -->
+      <section id="start" class="doc-section">
+        <div class="section-head bn">
+          <div class="icon-badge"><i class="fa-solid fa-rocket"></i></div>
+          <div>
+            <h2>Mulai Cepat</h2>
+            <div class="count">Dari wiring hingga sistem berjalan</div>
+          </div>
+        </div>
+        <div class="intro-card">
+          <ol>
+            <li>Rangkai komponen sesuai tabel pemetaan pin dan skema elektronik di atas.</li>
+            <li>Unggah kode program ke <strong>Arduino Mega</strong> menggunakan Arduino IDE atau ArduinoDroid.</li>
+            <li>Hubungkan smartphone ke perangkat BLE dengan nama default <code>COOP_BLE</code>.</li>
+            <li>Pantau dan kendalikan kandang melalui perintah BLE, atau biarkan sistem berjalan otomatis mengikuti jadwal RTC dan sensor.</li>
+          </ol>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<footer class="py-4 mt-4">
+  <div class="container text-center">
+    <div class="mb-1"><i class="fa-solid fa-dove me-1"></i> Arduino Coop Controller &mdash; CC2540 / HM-10 BLE Edition</div>
+    <div class="opacity-75">Repo: <a href="https://github.com/aos92/-Arduino-Coop-Controller" class="back-index" target="_blank" rel="noopener">github.com/aos92/-Arduino-Coop-Controller</a></div>
+  </div>
+</footer>
+
+<button id="backToTop" title="Kembali ke atas"><i class="fa-solid fa-arrow-up"></i></button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+  const backBtn = document.getElementById('backToTop');
+  window.addEventListener('scroll', () => {
+    backBtn.style.display = window.scrollY > 400 ? 'block' : 'none';
+  });
+  backBtn.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+</script>
+</body>
+</html>
